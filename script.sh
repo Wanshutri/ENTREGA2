@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 read -p "ID de proyecto: " PROJECT_ID
 read -p "Nombre del bucket: " BUCKET_NAME
-read -p "URL del parquet: " PARQUET_URL
+
+# Crear el bucket si no existe
+gsutil mb gs://$BUCKET_NAME/
 
 # Construir y desplegar
 gcloud builds submit --tag gcr.io/$PROJECT_ID/parquet-downloader container/
