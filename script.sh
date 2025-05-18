@@ -13,10 +13,12 @@ gcloud run deploy parquet-downloader \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=50000 \
-  --memory 4Gi \
-  --cpu 2 \
-  --max-instances 1
+  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=15000 \
+  --memory 16Gi \
+  --cpu 4 \
+  --max-instances 1 \
+  --execution-environment gen2 \
+  --cpu-throttling
 
 # Inicializar contador en GCS echoando 0
 echo 0 | gsutil cp - gs://$BUCKET_NAME/raw/part_index.txt
