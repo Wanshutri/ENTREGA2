@@ -8,7 +8,7 @@ from google.cloud import storage
 app = Flask(__name__)
 BUCKET      = os.environ['BUCKET_NAME']
 SOURCE_URL  = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet"
-PART_SIZE   = int(os.environ.get('PART_SIZE', '1000'))   # filas por parte
+PART_SIZE   = int(os.environ.get('PART_SIZE', '5000'))   # filas por parte
 STATE_BLOB  = 'raw/part_index.txt'
 TMP_PARQUET = '/tmp/data.parquet'
 
