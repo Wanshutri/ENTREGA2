@@ -6,7 +6,7 @@ read -p "Nombre del bucket: " BUCKET_NAME
 gsutil mb gs://$BUCKET_NAME/
 
 # Construir y desplegar
-gcloud builds submit --tag gcr.io/$PROJECT_ID/parquet-downloader container/
+gcloud builds submit --tag gcr.io/$PROJECT_ID/parquet-downloader container_parquet/
 
 gcloud run deploy parquet-downloader \
   --image gcr.io/$PROJECT_ID/parquet-downloader \
@@ -30,3 +30,29 @@ gcloud scheduler jobs create http parquet-partial-job \
   --http-method=GET \
   --time-zone="America/Santiago" \
   --location=us-central1
+
+# Crea un tema de Pub/Sub
+gcloud pubsub topics create dataprep-trigger-topic
+
+# Configura la notificación de creación de objetos JSON en tu bucket
+gsutil notification create \
+  -t dataprep-trigger-topic \
+  -f json \
+  gs://$BUCKET_NAME
+
+
+read -p "Nombre del Flow de dataprep: " DATAPREP_ID
+read -p "Token de acceso de dataprep: " DATAPREP_TOKEN
+
+gcloud functions deploy dataprep-trigger/trigger_dataprep \
+  --project=$PROJECT_ID \
+  --region=us-central1 \
+  --entry-point=trigger_dataprep \
+  --runtime=python39 \
+  --trigger-topic=dataprep-trigger-topic \
+  --source=. \
+  --set-env-vars \
+    BUCKET_NAME=$BUCKET_NAME,\
+    DATAPREP_FLOW_ID=$DATAPREP_ID,\
+    DATAPREP_OUTPUT_NAME=bq_output,\
+    DATAPREP_TOKEN=$DATAPREP_TOKEN
