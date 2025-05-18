@@ -7,6 +7,9 @@ read -p "Nombre del bucket: " BUCKET_NAME
 # Crea el bucket si no existe
 gsutil mb -p $PROJECT_ID -l us-central1 gs://$BUCKET_NAME/
 
+# Inicializa contador en GCS
+echo 0 | gsutil cp - gs://$BUCKET_NAME/raw/part_index.txt
+
 # ---------- ETAPA 1: PARQUET DOWNLOADER ----------
 # Construir y desplegar el contenedor para parquet-downloader
 gcloud builds submit --tag gcr.io/$PROJECT_ID/parquet-downloader container_parquet/
@@ -22,9 +25,6 @@ gcloud run deploy parquet-downloader \
   --max-instances 1 \
   --execution-environment gen2 \
   --cpu-throttling
-
-# Inicializa contador en GCS
-echo 0 | gsutil cp - gs://$BUCKET_NAME/raw/part_index.txt
 
 # Scheduler job
 gcloud scheduler jobs create http parquet-partial-job \
@@ -53,13 +53,14 @@ read -p "Token de acceso de Dataprep: " DATAPREP_TOKEN
 PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
 
 # Desplegar función Cloud Function con trigger Pub/Sub
-gcloud functions deploy dataprep-trigger-function \
+gcloud functions deploy dataprep_trigger_function \
   --runtime python310 \
   --trigger-topic dataprep-trigger-topic \
   --entry-point trigger_dataprep \
   --timeout 540 \
   --set-env-vars BUCKET_NAME=$BUCKET_NAME,DATAPREP_FLOW_ID=$DATAPREP_ID,DATAPREP_OUTPUT_NAME=bq_output,DATAPREP_TOKEN=$DATAPREP_TOKEN \
   --region us-central1 \
-  --allow-unauthenticated
+  --allow-unauthenticated \
+  --source=dataprep_trigger_function
 
 echo "Despliegue completado. La función se disparará automáticamente al recibir mensajes en el tópico dataprep-trigger-topic."

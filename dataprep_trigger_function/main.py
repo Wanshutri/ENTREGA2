@@ -19,13 +19,14 @@ def trigger_dataprep(cloud_event):
         print(f"Error decoding message data: {e}")
         return f"Error decoding message data: {e}", 400
 
-    url = "https://api.dataprep.com/v4/jobs"
+    url = "https://api.clouddataprep.com/v4/jobs"
     headers = {
         "Authorization": f"Bearer {os.environ['DATAPREP_TOKEN']}",
         "Content-Type": "application/json"
     }
     payload = {
         "flowId": os.environ["DATAPREP_FLOW_ID"],
+        "jobType": "FLOW_RUN",
         "outputName": os.environ["DATAPREP_OUTPUT_NAME"],
         "parameters": {
             "inputPath": f"gs://{os.environ['BUCKET_NAME']}/raw/{file_name}"
