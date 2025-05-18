@@ -34,12 +34,11 @@ gcloud scheduler jobs create http parquet-partial-job \
   --time-zone="America/Santiago" \
   --location=us-central1
 
-
-# ---------- ETAPA 2: TRIGGER DATAPREP POR PUBSUB ----------
+# ---------- ETAPA 2: TRIGGER DATAPREP POR PUBSUB CON CLOUD FUNCTION ----------
 # Crea el tópico de Pub/Sub
 gcloud pubsub topics create dataprep-trigger-topic
 
-# Configura notificación GCS → Pub/Sub
+# Configura notificación GCS → Pub/Sub para el prefijo raw/
 gsutil notification create \
   -t dataprep-trigger-topic \
   -f json \
@@ -50,27 +49,17 @@ gsutil notification create \
 read -p "ID del Flow de Dataprep: " DATAPREP_ID
 read -p "Token de acceso de Dataprep: " DATAPREP_TOKEN
 
-# Construir imagen del contenedor que escucha el Pub/Sub
-gcloud builds submit --tag gcr.io/$PROJECT_ID/dataprep-trigger dataprep_trigger/
-
-# Crear servicio de Cloud Run que escuche Pub/Sub
-gcloud run deploy dataprep-trigger \
-  --image gcr.io/$PROJECT_ID/dataprep-trigger \
-  --platform managed \
-  --region us-central1 \
-  --no-allow-unauthenticated \
-  --execution-environment gen2 \
-  --set-env-vars BUCKET_NAME=$BUCKET_NAME,DATAPREP_FLOW_ID=$DATAPREP_ID,DATAPREP_OUTPUT_NAME=bq_output,DATAPREP_TOKEN=$DATAPREP_TOKEN
-
-# Vincular servicio Cloud Run al tópico Pub/Sub
-gcloud run services add-iam-policy-binding dataprep-trigger \
-  --region us-central1 \
-  --member=serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com \
-  --role=roles/run.invoker
-
+# Obtener número de proyecto
 PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
 
-gcloud pubsub subscriptions create dataprep-sub \
-  --topic=dataprep-trigger-topic \
-  --push-endpoint=$(gcloud run services describe dataprep-trigger --region us-central1 --format='value(status.url)') \
-  --push-auth-service-account=service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com
+# Desplegar función Cloud Function con trigger Pub/Sub
+gcloud functions deploy dataprep-trigger-function \
+  --runtime python310 \
+  --trigger-topic dataprep-trigger-topic \
+  --entry-point trigger_dataprep \
+  --timeout 540 \
+  --set-env-vars BUCKET_NAME=$BUCKET_NAME,DATAPREP_FLOW_ID=$DATAPREP_ID,DATAPREP_OUTPUT_NAME=bq_output,DATAPREP_TOKEN=$DATAPREP_TOKEN \
+  --region us-central1 \
+  --allow-unauthenticated
+
+echo "Despliegue completado. La función se disparará automáticamente al recibir mensajes en el tópico dataprep-trigger-topic."
