@@ -13,7 +13,7 @@ gcloud run deploy parquet-downloader \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=5000 \
+  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=500 \
   --memory 16Gi \
   --cpu 4 \
   --max-instances 1 \
