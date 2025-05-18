@@ -13,7 +13,10 @@ gcloud run deploy parquet-downloader \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=1000000
+  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=50000 \
+  --memory 4Gi \
+  --cpu 2 \
+  --max-instances 1
 
 # Inicializar contador en GCS echoando 0
 echo 0 | gsutil cp - gs://$BUCKET_NAME/raw/part_index.txt
@@ -23,4 +26,5 @@ gcloud scheduler jobs create http parquet-partial-job \
   --schedule="0 1 * * *" \
   --uri="$(gcloud run services describe parquet-downloader --region us-central1 --format='value(status.url)')/download" \
   --http-method=GET \
-  --time-zone="America/Santiago"
+  --time-zone="America/Santiago" \
+  --location=us-central1
