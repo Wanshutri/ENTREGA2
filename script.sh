@@ -8,7 +8,7 @@ read -p "Nombre del bucket: " BUCKET_NAME
 gsutil mb -p $PROJECT_ID -l us-central1 gs://$BUCKET_NAME/
 
 # Inicializa contador en GCS
-echo 0 | gsutil cp - gs://$BUCKET_NAME/raw/part_index.txt
+echo 0 | gsutil cp - gs://$BUCKET_NAME/index/part_index.txt
 
 # ---------- ETAPA 1: PARQUET DOWNLOADER ----------
 # Construir y desplegar el contenedor para parquet-downloader
@@ -19,7 +19,7 @@ gcloud run deploy parquet-downloader \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=5000 \
+  --set-env-vars BUCKET_NAME=$BUCKET_NAME,PART_SIZE=1000000 \
   --memory 16Gi \
   --cpu 4 \
   --max-instances 1 \

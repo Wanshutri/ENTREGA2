@@ -8,8 +8,8 @@ from google.cloud import storage
 app = Flask(__name__)
 BUCKET      = os.environ['BUCKET_NAME']
 SOURCE_URL  = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet"
-PART_SIZE   = int(os.environ.get('PART_SIZE', '5000'))   # filas por parte
-STATE_BLOB  = 'raw/part_index.txt'
+PART_SIZE   = int(os.environ.get('PART_SIZE', '1000000'))   # filas por parte
+STATE_BLOB  = 'index/part_index.txt'
 TMP_PARQUET = '/tmp/data.parquet'
 
 # Cliente GCS global
@@ -58,8 +58,13 @@ def download_incremental():
     df.to_json(json_path, orient='records', lines=True)
 
     # 6) Subir el JSONL a GCS
-    dest_name = f'raw/data_part_{batch_index+1}.json'
+    dest_name = f'raw/data.json'
     blob = bucket.blob(dest_name)
+
+    # Eliminar el archivo anterior si existe
+    if blob.exists():
+        blob.delete()
+    
     blob.chunk_size = 50 * 1024 * 1024
     blob.upload_from_filename(json_path)
 
@@ -69,4 +74,4 @@ def download_incremental():
     # 8) Devolver rango de filas procesadas
     start = batch_index * PART_SIZE
     end   = start + batch.num_rows - 1
-    return f"Batch #{batch_index+1} subido -> filas {start}–{end}", 200
+    return f"Batch #{batch_index+1} subido -> filas {start}–{end}, en total son {end - start} filas procesadas", 200
