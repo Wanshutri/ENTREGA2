@@ -1,0 +1,2 @@
+requests
+google-cloud-storage==2.14.0
